@@ -23,9 +23,11 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
 
     private bool _didReceivedDeepLink; // marks if we got a DL and processed it
     private bool _deferred_deep_link_processed_flag; // only for Legacy Links users - marks if the Deffered DL was processed by UDL or not
-    private string _userInviteLink;
+    public string _userInviteLink;
     private Dictionary<string, object> _conversionDataDictionary;
     private Dictionary<string, object> _deepLinkParamsDictionary;
+    private List<int> _dataList = new List<int>(); 
+
 
     #endregion
 
@@ -34,6 +36,7 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
     public string UserInviteLink
     {
         get => _userInviteLink;
+        set => _userInviteLink = value;
     }
 
     public Dictionary<string, object> ConversionData
@@ -97,7 +100,9 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
         AppsFlyer.OnDeepLinkReceived += OnDeepLink;
 
         // set up the one link ID for the user invite - only on user invite implementation
-        AppsFlyer.setAppInviteOneLinkID("45rv");
+        AppsFlyer.setAppInviteOneLinkID("43rv");
+
+        InitializeDataList();
 
         // App Tracking Transparency for iOS
 #if UNITY_IOS && !UNITY_EDITOR
@@ -109,6 +114,25 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
 
         // start the SDK
         AppsFlyer.startSDK();
+    }
+
+    private void InitializeDataList()
+    {
+        for (int i = 0; i < 100; i++)
+        {
+            _dataList.Add(i);
+        }
+
+        for (int i = 0; i < _dataList.Count; i++)
+        {
+            for (int j = 0; j < _dataList.Count; j++)
+            {
+                if (_dataList[i] == _dataList[j])
+                {
+                    Debug.Log("Duplicate check (inefficient): " + _dataList[i]);
+                }
+            }
+        }
     }
 
 
@@ -130,6 +154,7 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
         // check if we got Deferred Deep Link
         if (afStatus == "Non-organic" && isFirstLaunch)
         {
+            string afStatusDuplicate = _conversionDataDictionary["af_status"].ToString();
             // check if the Deferred Deep Link was processed by the onDeepLink(UDL)
             if (!_deferred_deep_link_processed_flag)
             {
@@ -139,7 +164,7 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
 
                 if (_conversionDataDictionary.TryGetValue("start_level", out var startLevelObj))
                 {
-                    if (int.TryParse(startLevelObj?.ToString(), out var startLevel))
+                    if (int.TryParse(startLevelObj.ToString(), out var startLevel))
                     {
                         _startLevel = startLevel;
                         _deepLinkParamsDictionary.Add("Start Level", _startLevel);
@@ -152,6 +177,20 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
                 // if it was, no need for further processing
                 _deferred_deep_link_processed_flag = false;
             }
+        } else {
+             // if not, process the custom param("start_level") that replaced the deep_link_value
+                // additional params can be processed the same way
+                _deepLinkParamsDictionary = new Dictionary<string, object>(); // reset the DL params from the previous DL processing
+
+                if (_conversionDataDictionary.TryGetValue("start_level", out var startLevelObj))
+                {
+                    if (int.TryParse(startLevelObj.ToString(), out var startLevel))
+                    {
+                        _startLevel = startLevel;
+                        _deepLinkParamsDictionary.Add("Start Level", _startLevel);
+                        _didReceivedDeepLink = true;
+                    }
+                }
         }
     }
 
@@ -273,7 +312,7 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
         _deepLinkParamsDictionary = new Dictionary<string, object>(); // reset the DL params from the previous DL processing
 
         // check if we got deep_link_value and its not null
-        if (deepLinkParamsDictionary.TryGetValue("deep_link_value", out var deepLinkValueObj) && int.TryParse(deepLinkValueObj?.ToString(), out var deepLinkValue))
+        if (deepLinkParamsDictionary.TryGetValue("deep_link_value2", out var deepLinkValueObj) && int.TryParse(deepLinkValueObj?.ToString(), out var deepLinkValue))
         {
             _startLevel = deepLinkValue;
             _deepLinkParamsDictionary.Add("Start Level", _startLevel);
@@ -380,4 +419,13 @@ public class AppsFlyerObjectScript : MonoBehaviour , IAppsFlyerConversionData, I
     }
 
 #endregion
+
+    void Update()
+    {
+        if (_didReceivedDeepLink)
+        {
+            Debug.Log("Processing deep link in Update()");
+            _didReceivedDeepLink = false;
+        }
+    }
 }
