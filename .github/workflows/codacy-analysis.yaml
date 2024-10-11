@@ -1,14 +1,25 @@
-name: Codacy Analysis CLI
+name: InspectCode
 
-on: ["push"]
-
+on:
+  push:
+    branches:
+      - main
+      - 'releases/*'
+  pull_request:
+    types: [opened, reopened]
+  workflow_dispatch:
+  
 jobs:
-  codacy-analysis-cli:
-    name: Codacy Analysis CLI
+  inspect-code:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@main
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-      - name: Run Codacy Analysis CLI
-        uses: codacy/codacy-analysis-cli-action@master
+      - name: Annotate
+        # You may pin to the exact commit or the version.
+        uses: JetBrains/ReSharper-InspectCode@v0.3
+
+    permissions:
+      security-events: write
